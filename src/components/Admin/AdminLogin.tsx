@@ -17,7 +17,8 @@ const AdminLogin: React.FC = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting }
+    formState: { errors, isSubmitting },
+    setError
   } = useForm<AdminLoginFormData>()
 
   // Redirect if already authenticated
@@ -28,19 +29,15 @@ const AdminLogin: React.FC = () => {
   }, [isAuthenticated, navigate])
 
   const onSubmit = async (data: AdminLoginFormData) => {
-    if (!data.email.trim()) {
-      return
-    }
-    
-    if (!data.password.trim()) {
-      return
-    }
+    // Clear any previous errors
+    setError('email', { message: '' })
+    setError('password', { message: '' })
 
     try {
       await signIn(data.email, data.password)
-      navigate('/admin')
     } catch (error) {
-      // Error is already handled in the auth context
+      // Error is handled in the auth context with toast
+      console.error('Login error:', error)
     }
   }
 
@@ -71,7 +68,7 @@ const AdminLogin: React.FC = () => {
               <input
                 type="email"
                 {...register('email', { 
-                  required: 'Preencha todos os campos',
+                  required: 'E-mail é obrigatório',
                   pattern: {
                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                     message: 'E-mail inválido'
@@ -98,16 +95,12 @@ const AdminLogin: React.FC = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   {...register('password', { 
-                    required: 'Preencha todos os campos',
-                    minLength: {
-                      value: 3,
-                      message: 'Senha deve ter pelo menos 3 caracteres'
-                    }
+                    required: 'Senha é obrigatória'
                   })}
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 ${
                     errors.password ? 'border-red-500' : 'border-gray-300'
                   }`}
-                  placeholder="Digite sua senha"
+                  placeholder="admin123"
                   disabled={isSubmitting || loading}
                 />
                 <button

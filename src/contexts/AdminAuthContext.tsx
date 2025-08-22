@@ -1,7 +1,19 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { AdminUser, AuthToken, generateToken, getAuthToken, removeAuthToken, saveAuthToken } from '../lib/auth'
 import toast from 'react-hot-toast'
+
+interface AdminUser {
+  id: string
+  email: string
+  full_name: string
+  last_login?: string
+}
+
+interface AuthToken {
+  token: string
+  user: AdminUser
+  expiresAt: number
+}
 
 interface AdminAuthContextType {
   user: AdminUser | null
@@ -9,6 +21,46 @@ interface AdminAuthContextType {
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => void
   isAuthenticated: boolean
+}
+
+// Simple JWT implementation for admin auth
+const generateToken = (user: AdminUser): AuthToken => {
+  const expiresAt = Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+  const token = btoa(JSON.stringify({ ...user, exp: expiresAt }))
+  
+  return {
+    token,
+    user,
+    expiresAt
+  }
+}
+
+const saveAuthToken = (authData: AuthToken): void => {
+  localStorage.setItem('admin_auth', JSON.stringify(authData))
+}
+
+const getAuthToken = (): AuthToken | null => {
+  try {
+    const stored = localStorage.getItem('admin_auth')
+    if (!stored) return null
+    
+    const authData = JSON.parse(stored) as AuthToken
+    
+    // Check if token is expired
+    if (Date.now() >= authData.expiresAt) {
+      localStorage.removeItem('admin_auth')
+      return null
+    }
+    
+    return authData
+  } catch {
+    localStorage.removeItem('admin_auth')
+    return null
+  }
+}
+
+const removeAuthToken = (): void => {
+  localStorage.removeItem('admin_auth')
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined)
@@ -38,6 +90,11 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       setLoading(true)
 
+      // Validate input
+      if (!email.trim() || !password.trim()) {
+        throw new Error('Preencha todos os campos')
+      }
+
       // Call the authenticate_admin function
       const { data, error } = await supabase.rpc('authenticate_admin', {
         email_input: email,
@@ -45,7 +102,8 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       })
 
       if (error) {
-        throw new Error('Erro interno do servidor')
+        console.error('Supabase RPC error:', error)
+        throw new Error('Usuário ou senha inválidos')
       }
 
       if (!data || data.length === 0) {
@@ -53,10 +111,10 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       const adminUser: AdminUser = {
-        id: data[0].id,
-        email: data[0].email,
-        full_name: data[0].full_name,
-        last_login: data[0].last_login
+        id: data.id,
+        email: data.email,
+        full_name: data.full_name,
+        last_login: data.last_login
       }
 
       // Generate and save JWT token
