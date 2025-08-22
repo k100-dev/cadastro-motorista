@@ -94,10 +94,31 @@ npm run dev
 
 ## 🔐 Autenticação e Permissões
 
-- **Motoristas**: Acesso aos próprios dados
-- **Administradores**: Acesso a todos os dados
+### **Sistema de Autenticação Duplo**
+
+#### **Motoristas (Supabase Auth)**
+- Registro via email/senha
+- Acesso aos próprios dados
+- Dashboard pessoal
+
+#### **Administradores (JWT + PostgreSQL)**
+- Login separado com credenciais próprias
+- Senhas criptografadas com bcrypt
+- Sessão via JWT (24h de duração)
+- Acesso total ao sistema
+
+### **Credenciais Padrão do Admin**
+```
+E-mail: admin@admin.com
+Senha: admin123
+```
+
+### **Segurança Implementada**
 - **Row Level Security (RLS)**: Proteção a nível de linha
 - **Storage Policies**: Controle de acesso às imagens
+- **JWT Authentication**: Tokens seguros para admins
+- **Password Hashing**: bcrypt com salt rounds 12
+- **Session Management**: Controle automático de expiração
 
 ## 🌐 Funcionalidades por Página
 
@@ -116,8 +137,10 @@ npm run dev
 - Redirecionamento para dashboard
 
 ### `/admin-login` - Login Administrativo  
-- Acesso restrito para gestores
-- Interface diferenciada
+- Sistema de autenticação JWT
+- Validação de credenciais no PostgreSQL
+- Redirecionamento automático se já logado
+- Mensagens de erro em português
 
 ### `/dashboard` - Dashboard Motorista
 - Visualização do perfil completo
@@ -125,10 +148,13 @@ npm run dev
 - Fotos capturadas
 
 ### `/admin` - Dashboard Administrativo
+- **Protegido por autenticação JWT**
 - Lista de todos os motoristas
 - Filtros e busca
 - Aprovação/rejeição em massa
 - Estatísticas do sistema
+- Header com informações do admin logado
+- Botão de logout
 
 ## 📱 Design Responsivo
 
@@ -153,22 +179,76 @@ npm run preview  # Preview do build
 npm run lint     # Verificação de código
 ```
 
+## 🔐 Configuração de Segurança
+
+### **Alterar Senha Padrão do Admin**
+1. Faça login com as credenciais padrão
+2. Execute no PostgreSQL:
+```sql
+UPDATE admin_users 
+SET password_hash = hash_password('nova_senha_aqui')
+WHERE email = 'admin@admin.com';
+```
+
+### **Adicionar Novos Administradores**
+```sql
+INSERT INTO admin_users (email, password_hash, full_name)
+VALUES (
+  'novo@admin.com',
+  hash_password('senha_segura'),
+  'Nome do Administrador'
+);
+```
+
+### **Configurar JWT Secret (Produção)**
+```bash
+# Adicione no .env
+JWT_SECRET=sua_chave_secreta_super_segura_aqui
+```
+
 ## 📁 Estrutura de Pastas
 
 ```
 src/
 ├── components/
 │   ├── Admin/           # Componentes administrativos
+│   │   ├── AdminLogin.tsx
+│   │   ├── AdminHeader.tsx
+│   │   ├── AdminLayout.tsx
+│   │   ├── ProtectedAdminRoute.tsx
+│   │   └── AdminDashboard.tsx
 │   ├── Auth/            # Autenticação e proteção
 │   ├── Dashboard/       # Dashboards
 │   ├── Forms/           # Formulários
 │   ├── Layout/          # Layout e navegação
 │   └── PhotoCapture/    # Captura de fotos
 ├── contexts/            # Context API (Auth)
-├── lib/                 # Configurações (Supabase)
+│   ├── AuthContext.tsx      # Auth motoristas
+│   └── AdminAuthContext.tsx # Auth administradores
+├── lib/                 # Configurações
+│   ├── supabase.ts         # Cliente Supabase
+│   └── auth.ts             # Funções JWT
 ├── pages/               # Páginas principais
 └── App.tsx              # Componente raiz
 ```
+
+## 🛡️ Funcionalidades de Segurança
+
+### **Autenticação JWT**
+- Tokens com expiração de 24 horas
+- Verificação automática de validade
+- Logout automático em caso de token expirado
+- Armazenamento seguro no localStorage
+
+### **Proteção de Rotas**
+- Middleware de autenticação para rotas admin
+- Redirecionamento automático para login
+- Verificação de permissões em tempo real
+
+### **Criptografia de Senhas**
+- bcrypt com 12 salt rounds
+- Funções PostgreSQL para hash/verificação
+- Senhas nunca armazenadas em texto plano
 
 ## 🚀 Deploy
 
@@ -185,3 +265,17 @@ Este projeto foi desenvolvido para a Trackia como solução proprietária de ger
 ## 👥 Suporte
 
 Para dúvidas técnicas ou solicitações de funcionalidades, entre em contato com a equipe de desenvolvimento.
+
+### **Troubleshooting Comum**
+
+**Problema:** "Usuário ou senha inválidos"
+- Verifique se está usando as credenciais corretas
+- Confirme se o usuário está ativo no banco
+
+**Problema:** Token expirado
+- Faça login novamente
+- Verifique se o JWT_SECRET está configurado
+
+**Problema:** Erro de permissão no banco
+- Verifique se as funções PostgreSQL foram criadas
+- Confirme se as políticas RLS estão ativas
