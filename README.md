@@ -110,7 +110,7 @@ npm run dev
 ### **Credenciais Padrão do Admin**
 ```
 E-mail: admin@admin.com
-Senha: admin123
+Senha: Admin1234
 ```
 
 ### **Segurança Implementada**
@@ -186,7 +186,7 @@ npm run lint     # Verificação de código
 2. Execute no PostgreSQL:
 ```sql
 UPDATE admin_users 
-SET password_hash = hash_password('nova_senha_aqui')
+SET password_hash = hash_password('nova_senha_segura_aqui')
 WHERE email = 'admin@admin.com';
 ```
 
@@ -200,11 +200,6 @@ VALUES (
 );
 ```
 
-### **Configurar JWT Secret (Produção)**
-```bash
-# Adicione no .env
-JWT_SECRET=sua_chave_secreta_super_segura_aqui
-```
 
 ## 📁 Estrutura de Pastas
 
