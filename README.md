@@ -47,7 +47,7 @@ O Trackia é uma solução moderna para simplificar o processo de registro e ver
 1. **Clone o repositório**
 ```bash
 git clone <repository-url>
-cd trackia-driver-registration
+cd trackia-driver-registration/project
 ```
 
 2. **Instale as dependências**
